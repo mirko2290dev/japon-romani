@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Sendero Kana</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Yuji+Syuku&family=Zen+Maru+Gothic:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap');
+
+  :root{
+    --paper: #f6f1e7;
+    --paper-dark: #ece1cc;
+    --ink: #2b2622;
+    --ink-soft: #5a5248;
+    --sakura: #e08fa6;
+    --sakura-deep: #b5486a;
+    --blush: #f6dce3;
+    --matcha: #6f8f6a;
+    --matcha-deep: #4f6c4c;
+    --gold: #c9a24b;
+    --hanko: #b23a3a;
+  }
+
+  *{ box-sizing:border-box; }
+
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse at 20% 0%, #fffdf8 0%, transparent 55%),
+      var(--paper);
+    background-image:
+      radial-gradient(circle at 10% 20%, rgba(0,0,0,0.02) 0, transparent 2px),
+      radial-gradient(circle at 80% 60%, rgba(0,0,0,0.02) 0, transparent 2px);
+    background-size: 6px 6px, 7px 7px;
+    font-family:'Zen Maru Gothic', sans-serif;
+    color:var(--ink);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  /* fiber texture overlay */
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background-image: repeating-linear-gradient(115deg, rgba(0,0,0,0.015) 0px, rgba(0,0,0,0.015) 1px, transparent 1px, transparent 3px);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  #petals{
+    position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:0;
+  }
+  .petal{
+    position:absolute; top:-5%;
+    width:14px; height:14px;
+    background: var(--sakura);
+    opacity:0.35;
+    border-radius: 70% 30% 60% 40%;
+    animation: fall linear infinite;
+  }
+  @keyframes fall{
+    0%{ transform: translateY(0) rotate(0deg); }
+    100%{ transform: translateY(110vh) rotate(340deg); }
+  }
+
+  .stage{
+    position:relative;
+    z-index:1;
+    width:100%;
+    max-width:520px;
+    margin:24px;
+  }
+
+  .card{
+    background: #fffdf8;
+    border-radius: 4px;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.03), 0 12px 30px -12px rgba(43,38,34,0.25);
+    padding: 34px 30px;
+    position:relative;
+  }
+  /* torn paper edge effect */
+  .card::after{
+    content:"";
+    position:absolute; left:0; right:0; bottom:-6px; height:14px;
+    background:
+      linear-gradient(135deg, transparent 60%, #fffdf8 60%) 0 0/12px 12px repeat-x,
+      linear-gradient(-135deg, transparent 60%, #fffdf8 60%) 6px 0/12px 12px repeat-x;
+    opacity:0.9;
+  }
+
+  h1.title{
+    font-family:'Yuji Syuku', serif;
+    font-size: 2.5rem;
+    text-align:center;
+    margin: 0 0 2px 0;
+    color: var(--sakura-deep);
+    letter-spacing: 1px;
+  }
+  .subtitle{
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:0.92rem;
+    margin: 0 0 26px 0;
+  }
+
+  .section-label{
+    font-size:0.78rem;
+    text-transform:uppercase;
+    letter-spacing:1.5px;
+    color:var(--ink-soft);
+    margin: 18px 0 8px 2px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .section-label::before{ content:"〜"; color:var(--sakura); }
+
+  .choice-row{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:10px;
+  }
+  .choice-btn{
+    font-family:'Zen Maru Gothic', sans-serif;
+    font-weight:700;
+    font-size:0.95rem;
+    padding: 14px 8px;
+    border-radius: 10px;
+    border: 2px solid var(--paper-dark);
+    background: var(--paper);
+    color: var(--ink);
+    cursor:pointer;
+    transition: all 0.15s ease;
+  }
+  .choice-btn:hover{ border-color: var(--sakura); transform: translateY(-2px); }
+  .choice-btn.selected{
+    background: var(--blush);
+    border-color: var(--sakura-deep);
+    color: var(--sakura-deep);
+  }
+
+  .toggle-wrap{
+    display:flex;
+    background: var(--paper);
+    border-radius: 20px;
+    padding: 4px;
+    border: 2px solid var(--paper-dark);
+  }
+  .toggle-opt{
+    flex:1;
+    text-align:center;
+    padding:9px 6px;
+    border-radius:16px;
+    font-size:0.85rem;
+    font-weight:700;
+    cursor:pointer;
+    color: var(--ink-soft);
+    transition: all 0.15s ease;
+  }
+  .toggle-opt.active{
+    background: var(--matcha);
+    color:#fff;
+  }
+
+  .start-btn{
+    width:100%;
+    margin-top:26px;
+    padding: 15px;
+    border:none;
+    border-radius: 12px;
+    background: var(--sakura-deep);
+    color:#fff;
+    font-family:'Zen Maru Gothic', sans-serif;
+    font-weight:700;
+    font-size:1.05rem;
+    letter-spacing:0.5px;
+    cursor:pointer;
+    box-shadow: 0 8px 18px -8px rgba(181,72,106,0.6);
+    transition: transform 0.12s ease;
+  }
+  .start-btn:hover{ transform: translateY(-2px); }
+  .start-btn:active{ transform: translateY(0); }
+
+  /* ---- game screen ---- */
+  .topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-family:'Space Mono', monospace;
+    font-size:0.8rem;
+    color:var(--ink-soft);
+    margin-bottom: 18px;
+  }
+  .lives{ display:flex; gap:4px; font-size:1rem; }
+  .life{ opacity:1; transition: opacity 0.3s ease; }
+  .life.spent{ opacity:0.15; }
+
+  .prompt-wrap{
+    position:relative;
+    background: var(--paper);
+    border: 2px dashed var(--paper-dark);
+    border-radius: 8px;
+    padding: 34px 20px;
+    text-align:center;
+    margin-bottom: 22px;
+    min-height: 120px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .prompt-kana{
+    font-family:'Yuji Syuku', serif;
+    font-size: 4.2rem;
+    color: var(--ink);
+    line-height:1;
+  }
+  .prompt-romaji{
+    font-family:'Space Mono', monospace;
+    font-size: 2.6rem;
+    font-weight:700;
+    color: var(--ink);
+  }
+
+  .answers{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .answer-btn{
+    font-family: inherit;
+    font-size: 1.15rem;
+    font-weight:700;
+    padding: 18px 10px;
+    border-radius: 12px;
+    border: 2px solid var(--paper-dark);
+    background: #fffdf8;
+    color: var(--ink);
+    cursor:pointer;
+    transition: all 0.12s ease;
+  }
+  .answer-btn:hover:not(:disabled){ border-color: var(--sakura); transform: translateY(-2px); }
+  .answer-btn:disabled{ cursor:default; }
+  .answer-btn.correct{
+    background: #eef4ea;
+    border-color: var(--matcha);
+    color: var(--matcha-deep);
+  }
+  .answer-btn.wrong{
+    background: #f7e9e6;
+    border-color: var(--hanko);
+    color: var(--hanko);
+  }
+
+  /* hanko stamp */
+  .hanko{
+    position:absolute;
+    top: 50%; left:50%;
+    width: 74px; height:74px;
+    transform: translate(-50%,-50%) scale(0) rotate(-18deg);
+    border: 4px solid var(--hanko);
+    border-radius: 8px;
+    color: var(--hanko);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Yuji Syuku', serif;
+    font-size: 2.2rem;
+    opacity:0;
+    pointer-events:none;
+  }
+  .hanko.stamp{
+    animation: stampdown 0.5s cubic-bezier(.2,1.4,.4,1) forwards;
+  }
+  @keyframes stampdown{
+    0%{ transform: translate(-50%,-50%) scale(2.4) rotate(-18deg); opacity:0; }
+    55%{ transform: translate(-50%,-50%) scale(0.92) rotate(-14deg); opacity:0.9; }
+    75%{ transform: translate(-50%,-50%) scale(1.08) rotate(-16deg); opacity:0.85;}
+    100%{ transform: translate(-50%,-50%) scale(1) rotate(-15deg); opacity:0.85; }
+  }
+
+  .footer-row{
+    display:flex;
+    justify-content:space-between;
+    margin-top: 18px;
+    font-size:0.78rem;
+    color: var(--ink-soft);
+    font-family:'Space Mono', monospace;
+  }
+
+  .hidden{ display:none !important; }
+
+  /* end screen */
+  .result-title{
+    font-family:'Yuji Syuku', serif;
+    font-size:2rem;
+    text-align:center;
+    color: var(--sakura-deep);
+    margin-bottom: 4px;
+  }
+  .stat-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 18px 0;
+  }
+  .stat-box{
+    background: var(--paper);
+    border-radius: 10px;
+    padding: 14px;
+    text-align:center;
+  }
+  .stat-num{
+    font-family:'Space Mono', monospace;
+    font-size:1.6rem;
+    font-weight:700;
+    color: var(--ink);
+  }
+  .stat-label{
+    font-size:0.72rem;
+    color: var(--ink-soft);
+    text-transform:uppercase;
+    letter-spacing:1px;
+  }
+  .practice-list{
+    background: var(--blush);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 18px;
+    font-size:0.9rem;
+  }
+  .practice-list .k{
+    font-family:'Yuji Syuku', serif;
+    font-size:1.3rem;
+    margin-right:6px;
+  }
+  .btn-row{ display:flex; gap:10px; }
+  .btn-row .start-btn{ margin-top:0; }
+  .btn-secondary{
+    background: var(--paper);
+    color: var(--ink);
+    box-shadow:none;
+    border: 2px solid var(--paper-dark);
+  }
+</style>
+</head>
+<body>
+
+<div id="petals"></div>
+
+<div class="stage">
+
+  <!-- START SCREEN -->
+  <div class="card" id="start-screen">
+    <h1 class="title">桜かな路</h1>
+    <p class="subtitle">Sendero Kana — aprende hiragana y katakana jugando</p>
+
+    <div class="section-label">Alfabeto</div>
+    <div class="choice-row" id="alphabet-row">
+      <div class="choice-btn selected" data-val="hiragana">Hiragana</div>
+      <div class="choice-btn" data-val="katakana">Katakana</div>
+      <div class="choice-btn" data-val="mixto">Mixto</div>
+    </div>
+
+    <div class="section-label">Dirección</div>
+    <div class="toggle-wrap" id="direction-toggle">
+      <div class="toggle-opt active" data-val="kr">Kana → Rōmaji</div>
+      <div class="toggle-opt" data-val="rk">Rōmaji → Kana</div>
+    </div>
+
+    <button class="start-btn" id="start-btn">Empezar 🌸</button>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div class="card hidden" id="game-screen">
+    <div class="topbar">
+      <div class="lives" id="lives-display"></div>
+      <div id="streak-display">racha: 0</div>
+      <div id="score-display">puntos: 0</div>
+    </div>
+
+    <div class="prompt-wrap" id="prompt-wrap">
+      <div id="prompt-el" class="prompt-kana">あ</div>
+      <div class="hanko" id="hanko"></div>
+    </div>
+
+    <div class="answers" id="answers"></div>
+
+    <div class="footer-row">
+      <span id="mode-label">Hiragana · Kana → Rōmaji</span>
+      <span id="q-count">pregunta 1</span>
+    </div>
+  </div>
+
+  <!-- END SCREEN -->
+  <div class="card hidden" id="end-screen">
+    <div class="result-title">結果 · Resultado</div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-num" id="end-correct">0</div><div class="stat-label">aciertos</div></div>
+      <div class="stat-box"><div class="stat-num" id="end-accuracy">0%</div><div class="stat-label">precisión</div></div>
+      <div class="stat-box"><div class="stat-num" id="end-total">0</div><div class="stat-label">respondidas</div></div>
+      <div class="stat-box"><div class="stat-num" id="end-streak">0</div><div class="stat-label">mejor racha</div></div>
+    </div>
+    <div class="practice-list" id="practice-list"></div>
+    <div class="btn-row">
+      <button class="start-btn" id="retry-btn">Jugar de nuevo</button>
+      <button class="start-btn btn-secondary" id="change-btn">Cambiar modo</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ---------------- data ---------------- */
+const HIRAGANA = [
+  ["あ","a"],["い","i"],["う","u"],["え","e"],["お","o"],
+  ["か","ka"],["き","ki"],["く","ku"],["け","ke"],["こ","ko"],
+  ["さ","sa"],["し","shi"],["す","su"],["せ","se"],["そ","so"],
+  ["た","ta"],["ち","chi"],["つ","tsu"],["て","te"],["と","to"],
+  ["な","na"],["に","ni"],["ぬ","nu"],["ね","ne"],["の","no"],
+  ["は","ha"],["ひ","hi"],["ふ","fu"],["へ","he"],["ほ","ho"],
+  ["ま","ma"],["み","mi"],["む","mu"],["め","me"],["も","mo"],
+  ["や","ya"],["ゆ","yu"],["よ","yo"],
+  ["ら","ra"],["り","ri"],["る","ru"],["れ","re"],["ろ","ro"],
+  ["わ","wa"],["を","wo"],["ん","n"]
+];
+const KATAKANA = [
+  ["ア","a"],["イ","i"],["ウ","u"],["エ","e"],["オ","o"],
+  ["カ","ka"],["キ","ki"],["ク","ku"],["ケ","ke"],["コ","ko"],
+  ["サ","sa"],["シ","shi"],["ス","su"],["セ","se"],["ソ","so"],
+  ["タ","ta"],["チ","chi"],["ツ","tsu"],["テ","te"],["ト","to"],
+  ["ナ","na"],["ニ","ni"],["ヌ","nu"],["ネ","ne"],["ノ","no"],
+  ["ハ","ha"],["ヒ","hi"],["フ","fu"],["ヘ","he"],["ホ","ho"],
+  ["マ","ma"],["ミ","mi"],["ム","mu"],["メ","me"],["モ","mo"],
+  ["ヤ","ya"],["ユ","yu"],["ヨ","yo"],
+  ["ラ","ra"],["リ","ri"],["ル","ru"],["レ","re"],["ロ","ro"],
+  ["ワ","wa"],["ヲ","wo"],["ン","n"]
+];
+
+let pool = [];        // active kana set with weights
+let mode = { alphabet:"hiragana", direction:"kr" };
+let lives = 3, score = 0, streak = 0, bestStreak = 0;
+let correctCount = 0, totalCount = 0;
+let missCounts = {};  // kana -> wrong count
+let current = null;
+let locked = false;
+
+/* ---------------- petals ---------------- */
+function spawnPetals(){
+  const wrap = document.getElementById('petals');
+  for(let i=0;i<14;i++){
+    const p = document.createElement('div');
+    p.className='petal';
+    p.style.left = Math.random()*100+'%';
+    p.style.animationDuration = (9+Math.random()*8)+'s';
+    p.style.animationDelay = (Math.random()*10)+'s';
+    p.style.background = Math.random()>0.5 ? 'var(--sakura)' : 'var(--blush)';
+    wrap.appendChild(p);
+  }
+}
+spawnPetals();
+
+/* ---------------- start screen interactions ---------------- */
+document.querySelectorAll('#alphabet-row .choice-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#alphabet-row .choice-btn').forEach(b=>b.classList.remove('selected'));
+    btn.classList.add('selected');
+    mode.alphabet = btn.dataset.val;
+  });
+});
+document.querySelectorAll('#direction-toggle .toggle-opt').forEach(opt=>{
+  opt.addEventListener('click', ()=>{
+    document.querySelectorAll('#direction-toggle .toggle-opt').forEach(o=>o.classList.remove('active'));
+    opt.classList.add('active');
+    mode.direction = opt.dataset.val;
+  });
+});
+
+document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('retry-btn').addEventListener('click', ()=> startGame());
+document.getElementById('change-btn').addEventListener('click', ()=>{
+  showScreen('start-screen');
+});
+
+function showScreen(id){
+  ['start-screen','game-screen','end-screen'].forEach(s=>{
+    document.getElementById(s).classList.toggle('hidden', s!==id);
+  });
+}
+
+/* ---------------- game setup ---------------- */
+function buildPool(){
+  let base = [];
+  if(mode.alphabet==='hiragana') base = HIRAGANA.map(x=>({k:x[0], r:x[1], alpha:'hiragana'}));
+  else if(mode.alphabet==='katakana') base = KATAKANA.map(x=>({k:x[0], r:x[1], alpha:'katakana'}));
+  else {
+    base = HIRAGANA.map(x=>({k:x[0], r:x[1], alpha:'hiragana'}))
+      .concat(KATAKANA.map(x=>({k:x[0], r:x[1], alpha:'katakana'})));
+  }
+  return base.map(item => ({...item, weight:3}));
+}
+
+function startGame(){
+  pool = buildPool();
+  lives = 3; score = 0; streak = 0; bestStreak = 0;
+  correctCount = 0; totalCount = 0; missCounts = {};
+  locked = false;
+  renderLives();
+  document.getElementById('score-display').textContent = 'puntos: 0';
+  document.getElementById('streak-display').textContent = 'racha: 0';
+  const alphaLabel = mode.alphabet==='hiragana' ? 'Hiragana' : mode.alphabet==='katakana' ? 'Katakana' : 'Mixto';
+  const dirLabel = mode.direction==='kr' ? 'Kana → Rōmaji' : 'Rōmaji → Kana';
+  document.getElementById('mode-label').textContent = alphaLabel + ' · ' + dirLabel;
+  showScreen('game-screen');
+  nextQuestion();
+}
+
+function renderLives(){
+  const el = document.getElementById('lives-display');
+  el.innerHTML = '';
+  for(let i=0;i<3;i++){
+    const s = document.createElement('span');
+    s.className = 'life' + (i < (3-lives) ? ' spent' : '');
+    s.textContent = '🌸';
+    el.appendChild(s);
+  }
+}
+
+/* weighted pick, avoid immediate repeat */
+function pickItem(exclude){
+  const totalWeight = pool.reduce((a,b)=>a+b.weight,0);
+  let r = Math.random()*totalWeight;
+  for(const item of pool){
+    if(r < item.weight){
+      if(exclude && item.k===exclude.k && pool.length>1) return pickItem(exclude);
+      return item;
+    }
+    r -= item.weight;
+  }
+  return pool[0];
+}
+
+function nextQuestion(){
+  locked = false;
+  current = pickItem(current);
+  totalCount++;
+  document.getElementById('q-count').textContent = 'pregunta ' + totalCount;
+
+  const promptEl = document.getElementById('prompt-el');
+  const showKana = mode.direction === 'kr';
+  promptEl.className = showKana ? 'prompt-kana' : 'prompt-romaji';
+  promptEl.textContent = showKana ? current.k : current.r;
+
+  // build 4 options
+  let opts = [current];
+  let tries = 0;
+  while(opts.length < 4 && tries < 200){
+    tries++;
+    const cand = pool[Math.floor(Math.random()*pool.length)];
+    if(showKana){
+      if(!opts.find(o=>o.r===cand.r)) opts.push(cand);
+    } else {
+      if(!opts.find(o=>o.k===cand.k)) opts.push(cand);
+    }
+  }
+  opts = shuffle(opts);
+
+  const answersEl = document.getElementById('answers');
+  answersEl.innerHTML = '';
+  opts.forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className = 'answer-btn';
+    btn.textContent = showKana ? opt.r : opt.k;
+    btn.style.fontFamily = showKana ? "'Space Mono', monospace" : "'Yuji Syuku', serif";
+    btn.addEventListener('click', ()=> handleAnswer(opt, btn));
+    answersEl.appendChild(btn);
+  });
+
+  document.getElementById('hanko').className = 'hanko';
+}
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function handleAnswer(opt, btnEl){
+  if(locked) return;
+  locked = true;
+  const isCorrect = opt.k === current.k;
+  const allBtns = document.querySelectorAll('.answer-btn');
+
+  allBtns.forEach(b=>{
+    b.disabled = true;
+    const label = b.textContent;
+    const matchesCorrect = (mode.direction==='kr') ? (label === current.r) : (label === current.k);
+    if(matchesCorrect) b.classList.add('correct');
+  });
+
+  if(isCorrect){
+    score += 10 + Math.min(streak,10);
+    streak++;
+    bestStreak = Math.max(bestStreak, streak);
+    correctCount++;
+    current.weight = Math.max(1, current.weight - 1);
+    const hanko = document.getElementById('hanko');
+    hanko.textContent = '良';
+    hanko.className = 'hanko stamp';
+  } else {
+    btnEl.classList.add('wrong');
+    streak = 0;
+    lives--;
+    current.weight = current.weight + 3;
+    missCounts[current.k] = (missCounts[current.k]||0) + 1;
+    renderLives();
+  }
+
+  document.getElementById('score-display').textContent = 'puntos: ' + score;
+  document.getElementById('streak-display').textContent = 'racha: ' + streak;
+
+  setTimeout(()=>{
+    if(lives <= 0){
+      endGame();
+    } else {
+      nextQuestion();
+    }
+  }, isCorrect ? 700 : 1100);
+}
+
+function endGame(){
+  document.getElementById('end-correct').textContent = correctCount;
+  document.getElementById('end-total').textContent = totalCount;
+  const acc = totalCount ? Math.round((correctCount/totalCount)*100) : 0;
+  document.getElementById('end-accuracy').textContent = acc + '%';
+  document.getElementById('end-streak').textContent = bestStreak;
+
+  const missed = Object.entries(missCounts).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const listEl = document.getElementById('practice-list');
+  if(missed.length === 0){
+    listEl.innerHTML = '¡Sin errores! Kanji perfecto por ahora 🌸';
+  } else {
+    listEl.innerHTML = '<strong>A practicar más:</strong><br>' +
+      missed.map(([k,c]) => `<span class="k">${k}</span>×${c}`).join('  ');
+  }
+  showScreen('end-screen');
+}
+</script>
+</body>
+</html>
