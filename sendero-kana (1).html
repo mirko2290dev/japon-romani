@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Sendero Kana</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Yuji+Syuku&family=Zen+Maru+Gothic:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap');
+
+  :root{
+    --paper: #f6f1e7;
+    --paper-dark: #ece1cc;
+    --ink: #2b2622;
+    --ink-soft: #5a5248;
+    --sakura: #e08fa6;
+    --sakura-deep: #b5486a;
+    --blush: #f6dce3;
+    --matcha: #6f8f6a;
+    --matcha-deep: #4f6c4c;
+    --gold: #c9a24b;
+    --hanko: #b23a3a;
+    --card: #fffdf8; --ok-bg: #eef4ea; --bad-bg: #f7e9e6;
+    --petal-a:#e08fa6; --petal-b:#f6dce3; --petal-o:.35;
+  }
+  body[data-theme=dark]{
+    --paper:#2a2630; --paper-dark:#42394b; --ink:#f0e9f2; --ink-soft:#b8aec0;
+    --sakura:#d9668c; --sakura-deep:#e9799f; --blush:#4a2f3d; --matcha:#4f8a5c; --matcha-deep:#9fd3a6;
+    --hanko:#ff8a8a; --card:#342f3c; --ok-bg:#25382b; --bad-bg:#43272b;
+    --petal-a:#f0a0ba; --petal-b:#c9a2e0; --petal-o:.55;
+    background:var(--paper);
+  }
+  body[data-theme=dark] .start-btn{background:#c2507a}
+  #theme-btn{position:fixed;top:12px;right:12px;z-index:5;width:42px;height:42px;border-radius:50%;border:2px solid var(--paper-dark);background:var(--card);font-size:1.15rem;cursor:pointer}
+
+  *{ box-sizing:border-box; }
+
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse at 20% 0%, var(--card) 0%, transparent 55%),
+      var(--paper);
+    background-image:
+      radial-gradient(circle at 10% 20%, rgba(0,0,0,0.02) 0, transparent 2px),
+      radial-gradient(circle at 80% 60%, rgba(0,0,0,0.02) 0, transparent 2px);
+    background-size: 6px 6px, 7px 7px;
+    font-family:'Zen Maru Gothic', sans-serif;
+    color:var(--ink);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  /* fiber texture overlay */
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background-image: repeating-linear-gradient(115deg, rgba(0,0,0,0.015) 0px, rgba(0,0,0,0.015) 1px, transparent 1px, transparent 3px);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  #petals{
+    position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:0;
+  }
+  .petal{
+    position:absolute; top:-5%;
+    width:14px; height:14px;
+    background: var(--sakura);
+    opacity:var(--petal-o,.35);
+    border-radius: 70% 30% 60% 40%;
+    animation: fall linear infinite;
+  }
+  @keyframes fall{
+    0%{ transform: translateY(0) rotate(0deg); }
+    100%{ transform: translateY(110vh) rotate(340deg); }
+  }
+
+  .stage{
+    position:relative;
+    z-index:1;
+    width:100%;
+    max-width:520px;
+    margin:24px;
+  }
+
+  .card{
+    background: var(--card);
+    border-radius: 4px;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.03), 0 12px 30px -12px rgba(43,38,34,0.25);
+    padding: 34px 30px;
+    position:relative;
+  }
+  /* torn paper edge effect */
+  .card::after{
+    content:"";
+    position:absolute; left:0; right:0; bottom:-6px; height:14px;
+    background:
+      linear-gradient(135deg, transparent 60%, var(--card) 60%) 0 0/12px 12px repeat-x,
+      linear-gradient(-135deg, transparent 60%, var(--card) 60%) 6px 0/12px 12px repeat-x;
+    opacity:0.9;
+  }
+
+  h1.title{
+    font-family:'Yuji Syuku', serif;
+    font-size: 2.5rem;
+    text-align:center;
+    margin: 0 0 2px 0;
+    color: var(--sakura-deep);
+    letter-spacing: 1px;
+  }
+  .subtitle{
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:0.92rem;
+    margin: 0 0 26px 0;
+  }
+
+  .section-label{
+    font-size:0.78rem;
+    text-transform:uppercase;
+    letter-spacing:1.5px;
+    color:var(--ink-soft);
+    margin: 18px 0 8px 2px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .section-label::before{ content:"〜"; color:var(--sakura); }
+
+  .choice-row{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:10px;
+  }
+  .choice-btn{
+    font-family:'Zen Maru Gothic', sans-serif;
+    font-weight:700;
+    font-size:0.95rem;
+    padding: 14px 8px;
+    border-radius: 10px;
+    border: 2px solid var(--paper-dark);
+    background: var(--paper);
+    color: var(--ink);
+    cursor:pointer;
+    transition: all 0.15s ease;
+  }
+  .choice-btn:hover{ border-color: var(--sakura); transform: translateY(-2px); }
+  .choice-btn.selected{
+    background: var(--blush);
+    border-color: var(--sakura-deep);
+    color: var(--sakura-deep);
+  }
+
+  .toggle-wrap{
+    display:flex;
+    background: var(--paper);
+    border-radius: 20px;
+    padding: 4px;
+    border: 2px solid var(--paper-dark);
+  }
+  .toggle-opt{
+    flex:1;
+    text-align:center;
+    padding:9px 6px;
+    border-radius:16px;
+    font-size:0.85rem;
+    font-weight:700;
+    cursor:pointer;
+    color: var(--ink-soft);
+    transition: all 0.15s ease;
+  }
+  .toggle-opt.active{
+    background: var(--matcha);
+    color:#fff;
+  }
+
+  .start-btn{
+    width:100%;
+    margin-top:26px;
+    padding: 15px;
+    border:none;
+    border-radius: 12px;
+    background: var(--sakura-deep);
+    color:#fff;
+    font-family:'Zen Maru Gothic', sans-serif;
+    font-weight:700;
+    font-size:1.05rem;
+    letter-spacing:0.5px;
+    cursor:pointer;
+    box-shadow: 0 8px 18px -8px rgba(181,72,106,0.6);
+    transition: transform 0.12s ease;
+  }
+  .start-btn:hover{ transform: translateY(-2px); }
+  .start-btn:active{ transform: translateY(0); }
+
+  /* ---- game screen ---- */
+  .topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-family:'Space Mono', monospace;
+    font-size:0.8rem;
+    color:var(--ink-soft);
+    margin-bottom: 18px;
+  }
+  .lives{ display:flex; gap:4px; font-size:1rem; }
+  .life{ opacity:1; transition: opacity 0.3s ease; }
+  .life.spent{ opacity:0.15; }
+
+  .prompt-wrap{
+    position:relative;
+    background: var(--paper);
+    border: 2px dashed var(--paper-dark);
+    border-radius: 8px;
+    padding: 34px 20px;
+    text-align:center;
+    margin-bottom: 22px;
+    min-height: 120px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .prompt-kana{
+    font-family:'Yuji Syuku', serif;
+    font-size: 4.2rem;
+    color: var(--ink);
+    line-height:1;
+  }
+  .prompt-romaji{
+    font-family:'Space Mono', monospace;
+    font-size: 2.6rem;
+    font-weight:700;
+    color: var(--ink);
+  }
+
+  .answers{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .answer-btn{
+    font-family: inherit;
+    font-size: 1.15rem;
+    font-weight:700;
+    padding: 18px 10px;
+    border-radius: 12px;
+    border: 2px solid var(--paper-dark);
+    background: var(--card);
+    color: var(--ink);
+    cursor:pointer;
+    transition: all 0.12s ease;
+  }
+  .answer-btn:hover:not(:disabled){ border-color: var(--sakura); transform: translateY(-2px); }
+  .answer-btn:disabled{ cursor:default; }
+  .answer-btn.correct{
+    background: var(--ok-bg);
+    border-color: var(--matcha);
+    color: var(--matcha-deep);
+  }
+  .answer-btn.wrong{
+    background: var(--bad-bg);
+    border-color: var(--hanko);
+    color: var(--hanko);
+  }
+
+  /* hanko stamp */
+  .hanko{
+    position:absolute;
+    top: 50%; left:50%;
+    width: 74px; height:74px;
+    transform: translate(-50%,-50%) scale(0) rotate(-18deg);
+    border: 4px solid var(--hanko);
+    border-radius: 8px;
+    color: var(--hanko);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Yuji Syuku', serif;
+    font-size: 2.2rem;
+    opacity:0;
+    pointer-events:none;
+  }
+  .hanko.stamp{
+    animation: stampdown 0.5s cubic-bezier(.2,1.4,.4,1) forwards;
+  }
+  @keyframes stampdown{
+    0%{ transform: translate(-50%,-50%) scale(2.4) rotate(-18deg); opacity:0; }
+    55%{ transform: translate(-50%,-50%) scale(0.92) rotate(-14deg); opacity:0.9; }
+    75%{ transform: translate(-50%,-50%) scale(1.08) rotate(-16deg); opacity:0.85;}
+    100%{ transform: translate(-50%,-50%) scale(1) rotate(-15deg); opacity:0.85; }
+  }
+
+  .footer-row{
+    display:flex;
+    justify-content:space-between;
+    margin-top: 18px;
+    font-size:0.78rem;
+    color: var(--ink-soft);
+    font-family:'Space Mono', monospace;
+  }
+
+  .hidden{ display:none !important; }
+
+  /* end screen */
+  .result-title{
+    font-family:'Yuji Syuku', serif;
+    font-size:2rem;
+    text-align:center;
+    color: var(--sakura-deep);
+    margin-bottom: 4px;
+  }
+  .stat-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 18px 0;
+  }
+  .stat-box{
+    background: var(--paper);
+    border-radius: 10px;
+    padding: 14px;
+    text-align:center;
+  }
+  .stat-num{
+    font-family:'Space Mono', monospace;
+    font-size:1.6rem;
+    font-weight:700;
+    color: var(--ink);
+  }
+  .stat-label{
+    font-size:0.72rem;
+    color: var(--ink-soft);
+    text-transform:uppercase;
+    letter-spacing:1px;
+  }
+  .practice-list{
+    background: var(--blush);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 18px;
+    font-size:0.9rem;
+  }
+  .practice-list .k{
+    font-family:'Yuji Syuku', serif;
+    font-size:1.3rem;
+    margin-right:6px;
+  }
+  .btn-row{ display:flex; gap:10px; }
+  .btn-row .start-btn{ margin-top:0; }
+  #prompt-el{width:100%}
+  .prompt-text{font-family:'Zen Maru Gothic',sans-serif}
+  .sm{font-size:.9rem;color:var(--ink-soft);margin:4px 0}
+  .rom{font-family:'Space Mono',monospace;font-size:1.05rem;margin-top:6px}
+  .rom.big{font-size:2.4rem;font-weight:700;color:var(--ink)}
+  .blank{color:var(--sakura-deep);border-bottom:3px solid var(--sakura)}
+  .note{min-height:22px;margin-top:14px;font-size:.85rem;color:var(--matcha-deep);text-align:center}
+  .line{margin-top:10px;min-height:52px;font-family:'Yuji Syuku',serif;font-size:1.5rem}
+  .tok{display:inline-block;margin:2px 5px;text-align:center}
+  .tok small{display:block;font-family:'Zen Maru Gothic',sans-serif;font-size:.6rem;color:var(--sakura-deep)}
+  #game-row .choice-btn{font-size:.85rem}
+  .ro{display:block;font-family:'Space Mono',monospace;font-size:.68rem;font-weight:400;color:var(--ink-soft);margin-top:3px}
+  .tok small.ro{font-size:.6rem}
+  .alpha-tag{position:absolute;top:8px;left:10px;font-family:'Space Mono',monospace;font-size:.65rem;letter-spacing:1px;text-transform:uppercase;padding:2px 9px;border-radius:10px;background:var(--blush);color:var(--sakura-deep)}
+  .alpha-tag.k{background:var(--ok-bg);color:var(--matcha-deep)}
+  .alpha-tag:empty{display:none}
+  .info{margin-top:14px;background:var(--blush);border-radius:10px;padding:14px 16px;font-size:.88rem;line-height:1.45}
+  .info p{margin:8px 0}
+  .info-h{font-family:'Yuji Syuku',serif;font-size:1.3rem;color:var(--sakura-deep)}
+  .info-h .jp{font-size:1.5rem}
+  .info-t{font-size:.7rem;letter-spacing:1px;text-transform:uppercase;color:var(--ink-soft)}
+  .info .start-btn{margin-top:8px;padding:11px}
+  .btn-secondary{
+    background: var(--paper);
+    color: var(--ink);
+    box-shadow:none;
+    border: 2px solid var(--paper-dark);
+  }
+</style>
+</head>
+<body>
+
+<div id="petals"></div>
+<button id="theme-btn" title="Cambiar tema (claro / oscuro)">☀️</button>
+
+<div class="stage">
+
+  <!-- START SCREEN -->
+  <div class="card" id="start-screen">
+    <h1 class="title">桜かな路</h1>
+    <p class="subtitle">Sendero Kana — aprende hiragana y katakana jugando</p>
+
+    <div class="section-label">Modo</div>
+    <div class="choice-row" id="game-row">
+      <div class="choice-btn selected" data-val="kana">Kana</div>
+      <div class="choice-btn" data-val="sailors">Nombres</div>
+      <div class="choice-btn" data-val="paises">Países</div>
+      <div class="choice-btn" data-val="part">Partículas</div>
+      <div class="choice-btn" data-val="pres">Presentarse</div>
+      <div class="choice-btn" data-val="orden">Orden</div>
+    </div>
+    <div id="kana-opts">
+    <div class="section-label">Alfabeto</div>
+    <div class="choice-row" id="alphabet-row">
+      <div class="choice-btn selected" data-val="hiragana">Hiragana</div>
+      <div class="choice-btn" data-val="katakana">Katakana</div>
+      <div class="choice-btn" data-val="mixto">Mixto</div>
+    </div>
+
+    <div class="section-label">Dirección</div>
+    <div class="toggle-wrap" id="direction-toggle">
+      <div class="toggle-opt active" data-val="kr">Kana → Rōmaji</div>
+      <div class="toggle-opt" data-val="rk">Rōmaji → Kana</div>
+    </div>
+    <div class="section-label">Tenten ゛ y maru ゜</div>
+    <div class="choice-row" id="dk-row">
+      <div class="choice-btn" data-val="no">Básico</div>
+      <div class="choice-btn selected" data-val="todo">Todo</div>
+      <div class="choice-btn" data-val="solo">Solo ゛゜</div>
+    </div>
+
+    </div>
+    <div id="series-opts" class="hidden">
+      <div class="section-label">Serie</div>
+      <div class="choice-row" id="series-row" style="grid-template-columns:1fr 1fr">
+        <div class="choice-btn selected" data-val="all">Todas</div>
+        <div class="choice-btn" data-val="sm">Sailor Moon</div>
+        <div class="choice-btn" data-val="sf">Spy×Family</div>
+        <div class="choice-btn" data-val="nk">Nakamura-kun!!</div>
+      </div>
+    </div>
+    <div id="rom-opts" class="hidden">
+      <div class="section-label">Rōmaji</div>
+      <div class="toggle-wrap" id="romaji-toggle">
+        <div class="toggle-opt active" data-val="1">Mostrar</div>
+        <div class="toggle-opt" data-val="0">Ocultar</div>
+      </div>
+      <div class="section-label">Partículas</div>
+      <div class="toggle-wrap" id="ptoggle">
+        <div class="toggle-opt active" data-val="0">Solo は・の</div>
+        <div class="toggle-opt" data-val="1">Todas</div>
+      </div>
+    </div>
+    <button class="start-btn" id="start-btn">Empezar 🌸</button>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div class="card hidden" id="game-screen">
+    <div class="topbar">
+      <div class="lives" id="lives-display"></div>
+      <div id="streak-display">racha: 0</div>
+      <div id="score-display">puntos: 0</div>
+    </div>
+
+    <div class="prompt-wrap" id="prompt-wrap">
+      <div id="prompt-el" class="prompt-kana">あ</div>
+      <div class="alpha-tag" id="alpha-tag"></div>
+      <div class="hanko" id="hanko"></div>
+    </div>
+
+    <div class="answers" id="answers"></div>
+    <div class="note" id="note"></div>
+    <div class="info hidden" id="info"></div>
+
+    <div class="footer-row">
+      <span id="mode-label">Hiragana · Kana → Rōmaji</span>
+      <span id="q-count">pregunta 1</span>
+    </div>
+  </div>
+
+  <!-- END SCREEN -->
+  <div class="card hidden" id="end-screen">
+    <div class="result-title">結果 · Resultado</div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-num" id="end-correct">0</div><div class="stat-label">aciertos</div></div>
+      <div class="stat-box"><div class="stat-num" id="end-accuracy">0%</div><div class="stat-label">precisión</div></div>
+      <div class="stat-box"><div class="stat-num" id="end-total">0</div><div class="stat-label">respondidas</div></div>
+      <div class="stat-box"><div class="stat-num" id="end-streak">0</div><div class="stat-label">mejor racha</div></div>
+    </div>
+    <div class="practice-list" id="practice-list"></div>
+    <div class="btn-row">
+      <button class="start-btn" id="retry-btn">Jugar de nuevo</button>
+      <button class="start-btn btn-secondary" id="change-btn">Cambiar modo</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ---------------- data ---------------- */
+const HIRAGANA = [
+  ["あ","a"],["い","i"],["う","u"],["え","e"],["お","o"],
+  ["か","ka"],["き","ki"],["く","ku"],["け","ke"],["こ","ko"],
+  ["さ","sa"],["し","shi"],["す","su"],["せ","se"],["そ","so"],
+  ["た","ta"],["ち","chi"],["つ","tsu"],["て","te"],["と","to"],
+  ["な","na"],["に","ni"],["ぬ","nu"],["ね","ne"],["の","no"],
+  ["は","ha"],["ひ","hi"],["ふ","fu"],["へ","he"],["ほ","ho"],
+  ["ま","ma"],["み","mi"],["む","mu"],["め","me"],["も","mo"],
+  ["や","ya"],["ゆ","yu"],["よ","yo"],
+  ["ら","ra"],["り","ri"],["る","ru"],["れ","re"],["ろ","ro"],
+  ["わ","wa"],["を","wo"],["ん","n"]
+];
+const KATAKANA = [
+  ["ア","a"],["イ","i"],["ウ","u"],["エ","e"],["オ","o"],
+  ["カ","ka"],["キ","ki"],["ク","ku"],["ケ","ke"],["コ","ko"],
+  ["サ","sa"],["シ","shi"],["ス","su"],["セ","se"],["ソ","so"],
+  ["タ","ta"],["チ","chi"],["ツ","tsu"],["テ","te"],["ト","to"],
+  ["ナ","na"],["ニ","ni"],["ヌ","nu"],["ネ","ne"],["ノ","no"],
+  ["ハ","ha"],["ヒ","hi"],["フ","fu"],["ヘ","he"],["ホ","ho"],
+  ["マ","ma"],["ミ","mi"],["ム","mu"],["メ","me"],["モ","mo"],
+  ["ヤ","ya"],["ユ","yu"],["ヨ","yo"],
+  ["ラ","ra"],["リ","ri"],["ル","ru"],["レ","re"],["ロ","ro"],
+  ["ワ","wa"],["ヲ","wo"],["ン","n"]
+];
+
+const DKH = [["が","ga"],["ぎ","gi"],["ぐ","gu"],["げ","ge"],["ご","go"],["ざ","za"],["じ","ji"],["ず","zu"],["ぜ","ze"],["ぞ","zo"],["だ","da"],["で","de"],["ど","do"],["ば","ba"],["び","bi"],["ぶ","bu"],["べ","be"],["ぼ","bo"],["ぱ","pa"],["ぴ","pi"],["ぷ","pu"],["ぺ","pe"],["ぽ","po"]];
+let pool = [];        // active kana set with weights
+let mode = { alphabet:"hiragana", direction:"kr" };
+let lives = 3, score = 0, streak = 0, bestStreak = 0;
+let correctCount = 0, totalCount = 0;
+let missCounts = {};  // kana -> wrong count
+let current = null;
+let locked = false;
+
+/* ---------------- petals ---------------- */
+function spawnPetals(){
+  const wrap = document.getElementById('petals');
+  for(let i=0;i<20;i++){
+    const p = document.createElement('div');
+    p.className='petal';
+    p.style.left = Math.random()*100+'%';
+    p.style.animationDuration = (9+Math.random()*8)+'s';
+    p.style.animationDelay = (-Math.random()*16)+'s';
+    p.style.background = Math.random()>0.5 ? 'var(--petal-a)' : 'var(--petal-b)';
+    wrap.appendChild(p);
+  }
+}
+spawnPetals();
+
+/* ---------------- start screen interactions ---------------- */
+document.querySelectorAll('#alphabet-row .choice-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#alphabet-row .choice-btn').forEach(b=>b.classList.remove('selected'));
+    btn.classList.add('selected');
+    mode.alphabet = btn.dataset.val;
+  });
+});
+document.querySelectorAll('#direction-toggle .toggle-opt').forEach(opt=>{
+  opt.addEventListener('click', ()=>{
+    document.querySelectorAll('#direction-toggle .toggle-opt').forEach(o=>o.classList.remove('active'));
+    opt.classList.add('active');
+    mode.direction = opt.dataset.val;
+  });
+});
+
+document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('retry-btn').addEventListener('click', ()=> startGame());
+document.getElementById('change-btn').addEventListener('click', ()=>{
+  showScreen('start-screen');
+});
+
+function showScreen(id){
+  ['start-screen','game-screen','end-screen'].forEach(s=>{
+    document.getElementById(s).classList.toggle('hidden', s!==id);
+  });
+}
+
+/* ---------------- game setup ---------------- */
+function buildPool(){
+  let base = [];
+  if(mode.alphabet==='hiragana') base = HIRAGANA.map(x=>({k:x[0], r:x[1], alpha:'hiragana'}));
+  else if(mode.alphabet==='katakana') base = KATAKANA.map(x=>({k:x[0], r:x[1], alpha:'katakana'}));
+  else {
+    base = HIRAGANA.map(x=>({k:x[0], r:x[1], alpha:'hiragana'}))
+      .concat(KATAKANA.map(x=>({k:x[0], r:x[1], alpha:'katakana'})));
+  }
+  const kk = c => String.fromCharCode(c.charCodeAt(0)+0x60);
+  const exH = DKH.map(x=>({k:x[0], r:x[1], alpha:'hiragana'}));
+  const exK = DKH.map(x=>({k:kk(x[0]), r:x[1], alpha:'katakana'}));
+  const ex = mode.alphabet==='hiragana' ? exH : mode.alphabet==='katakana' ? exK : exH.concat(exK);
+  if(mode.dk==='solo') base = ex; else if(mode.dk==='todo') base = base.concat(ex);
+  return base.map(item => ({...item, weight:3}));
+}
+
+function startGame(){
+  pool = buildPool();
+  lives = 3; score = 0; streak = 0; bestStreak = 0;
+  correctCount = 0; totalCount = 0; missCounts = {};
+  locked = false;
+  renderLives();
+  document.getElementById('score-display').textContent = 'puntos: 0';
+  document.getElementById('streak-display').textContent = 'racha: 0';
+  const alphaLabel = mode.alphabet==='hiragana' ? 'Hiragana' : mode.alphabet==='katakana' ? 'Katakana' : 'Mixto';
+  const dirLabel = mode.direction==='kr' ? 'Kana → Rōmaji' : 'Rōmaji → Kana';
+  document.getElementById('mode-label').textContent = alphaLabel + ' · ' + dirLabel;
+  if(mode.game!=='kana') document.getElementById('mode-label').textContent = GL[mode.game];
+  showScreen('game-screen');
+  nextQuestion();
+}
+
+function renderLives(){
+  const el = document.getElementById('lives-display');
+  el.innerHTML = '';
+  for(let i=0;i<3;i++){
+    const s = document.createElement('span');
+    s.className = 'life' + (i < (3-lives) ? ' spent' : '');
+    s.textContent = '🌸';
+    el.appendChild(s);
+  }
+}
+
+/* weighted pick, avoid immediate repeat */
+function pickItem(exclude){
+  const totalWeight = pool.reduce((a,b)=>a+b.weight,0);
+  let r = Math.random()*totalWeight;
+  for(const item of pool){
+    if(r < item.weight){
+      if(exclude && item.k===exclude.k && pool.length>1) return pickItem(exclude);
+      return item;
+    }
+    r -= item.weight;
+  }
+  return pool[0];
+}
+
+function nextQuestion(){
+  document.getElementById('note').textContent='';
+  document.getElementById('info').classList.add('hidden');
+  if(mode.game!=='kana') return nextQuiz();
+  nextKana();
+}
+function nextKana(){
+  locked = false;
+  current = pickItem(current);
+  totalCount++;
+  document.getElementById('q-count').textContent = 'pregunta ' + totalCount;
+
+  const promptEl = document.getElementById('prompt-el');
+  const showKana = mode.direction === 'kr';
+  promptEl.className = showKana ? 'prompt-kana' : 'prompt-romaji';
+  promptEl.textContent = showKana ? current.k : current.r;
+  const tag = document.getElementById('alpha-tag');
+  if(mode.alphabet==='mixto'){ tag.textContent = current.alpha; tag.className = 'alpha-tag' + (current.alpha==='katakana' ? ' k' : ''); }
+  else tag.textContent = '';
+
+  // build 4 options
+  let opts = [current];
+  let tries = 0;
+  while(opts.length < 4 && tries < 200){
+    tries++;
+    const cand = pool[Math.floor(Math.random()*pool.length)];
+    if(showKana){
+      if(!opts.find(o=>o.r===cand.r)) opts.push(cand);
+    } else {
+      if(!opts.find(o=>o.k===cand.k) && (mode.alphabet!=='mixto' || cand.alpha===current.alpha)) opts.push(cand);
+    }
+  }
+  opts = shuffle(opts);
+
+  const answersEl = document.getElementById('answers');
+  answersEl.innerHTML = '';
+  opts.forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className = 'answer-btn';
+    btn.textContent = showKana ? opt.r : opt.k;
+    btn.style.fontFamily = showKana ? "'Space Mono', monospace" : "'Yuji Syuku', serif";
+    btn.addEventListener('click', ()=> handleAnswer(opt, btn));
+    answersEl.appendChild(btn);
+  });
+
+  document.getElementById('hanko').className = 'hanko';
+}
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function handleAnswer(opt, btnEl){
+  if(locked) return;
+  locked = true;
+  const isCorrect = opt.k === current.k;
+  const allBtns = document.querySelectorAll('.answer-btn');
+
+  allBtns.forEach(b=>{
+    b.disabled = true;
+    const label = b.textContent;
+    const matchesCorrect = (mode.direction==='kr') ? (label === current.r) : (label === current.k);
+    if(matchesCorrect) b.classList.add('correct');
+  });
+
+  if(isCorrect){
+    score += 10 + Math.min(streak,10);
+    streak++;
+    bestStreak = Math.max(bestStreak, streak);
+    correctCount++;
+    current.weight = Math.max(1, current.weight - 1);
+    const hanko = document.getElementById('hanko');
+    hanko.textContent = '良';
+    hanko.className = 'hanko stamp';
+  } else {
+    btnEl.classList.add('wrong');
+    streak = 0;
+    lives--;
+    current.weight = current.weight + 3;
+    missCounts[current.k] = (missCounts[current.k]||0) + 1;
+    renderLives();
+  }
+
+  document.getElementById('score-display').textContent = 'puntos: ' + score;
+  document.getElementById('streak-display').textContent = 'racha: ' + streak;
+
+  setTimeout(()=>{
+    if(lives <= 0){
+      endGame();
+    } else {
+      nextQuestion();
+    }
+  }, isCorrect ? 700 : 1100);
+}
+
+function endGame(){
+  document.getElementById('end-correct').textContent = correctCount;
+  document.getElementById('end-total').textContent = totalCount;
+  const acc = totalCount ? Math.round((correctCount/totalCount)*100) : 0;
+  document.getElementById('end-accuracy').textContent = acc + '%';
+  document.getElementById('end-streak').textContent = bestStreak;
+
+  const missed = Object.entries(missCounts).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const listEl = document.getElementById('practice-list');
+  if(missed.length === 0){
+    listEl.innerHTML = '¡Sin errores! 🌸';
+  } else {
+    listEl.innerHTML = '<strong>A practicar más:</strong><br>' +
+      missed.map(([k,c]) => `<span class="k">${k}</span>×${c}`).join('  ');
+  }
+  showScreen('end-screen');
+}
+
+/* ---------------- nuevos modos ---------------- */
+mode.game='kana';mode.romaji=true;mode.allp=false;mode.dk='todo';
+document.querySelectorAll('#ptoggle .toggle-opt').forEach(o=>o.addEventListener('click',()=>{
+  document.querySelectorAll('#ptoggle .toggle-opt').forEach(x=>x.classList.remove('active'));
+  o.classList.add('active');mode.allp=o.dataset.val==='1';
+}));
+document.querySelectorAll('#dk-row .choice-btn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#dk-row .choice-btn').forEach(x=>x.classList.remove('selected'));
+  b.classList.add('selected');mode.dk=b.dataset.val;
+}));
+const TH=['light','dark'],TI=['☀️','🌙'];let ti=0;
+try{ti=Math.max(0,TH.indexOf(localStorage.getItem('sk-theme')));}catch(e){}
+function setTheme(i){ti=i;document.body.dataset.theme=TH[i];document.getElementById('theme-btn').textContent=TI[i];try{localStorage.setItem('sk-theme',TH[i]);}catch(e){}}
+document.getElementById('theme-btn').onclick=()=>setTheme((ti+1)%2);setTheme(ti);mode.series='all';
+document.querySelectorAll('#series-row .choice-btn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#series-row .choice-btn').forEach(x=>x.classList.remove('selected'));
+  b.classList.add('selected');mode.series=b.dataset.val;
+}));
+document.querySelectorAll('#romaji-toggle .toggle-opt').forEach(o=>o.addEventListener('click',()=>{
+  document.querySelectorAll('#romaji-toggle .toggle-opt').forEach(x=>x.classList.remove('active'));
+  o.classList.add('active');mode.romaji=o.dataset.val==='1';
+}));
+const $=id=>document.getElementById(id);
+const GL={sailors:'Nombres',paises:'Países',part:'Partículas',pres:'Presentaciones',orden:'Orden de la frase'};
+document.querySelectorAll('#game-row .choice-btn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#game-row .choice-btn').forEach(x=>x.classList.remove('selected'));
+  b.classList.add('selected'); mode.game=b.dataset.val;
+  $('kana-opts').classList.toggle('hidden',mode.game!=='kana');
+  $('series-opts').classList.toggle('hidden',!['sailors','pres'].includes(mode.game));
+  $('rom-opts').classList.toggle('hidden',!['part','pres','orden'].includes(mode.game));
+}));
+
+const pk=a=>a[Math.floor(Math.random()*a.length)];
+const oth=(a,x,n)=>shuffle(a.filter(y=>y!==x)).slice(0,n);
+const mk=(ans,wrong,o)=>({ans,opts:shuffle([ans,...wrong]),...o});
+const KJ=(t,z)=>`<div class="prompt-kana" style="font-size:${z||2.6}rem">${t}</div>`;
+
+const SAILORS=[
+// [romaji, kana, serie, código, kanji, significado, simbolismo]
+["Tsukino Usagi","つきの うさぎ","Sailor Moon","sm","月野うさぎ","«Conejo de la luna» (o «del campo de la luna»): 月 (tsuki) luna + 野 (no) campo + うさぎ (usagi) conejo.","En el folclore japonés hay un conejo que vive en la luna y machaca mochi. Su nombre la presenta como la heroína de la luna."],
+["Mizuno Ami","みずの あみ","Sailor Moon","sm","水野亜美","«Campo de agua»: 水 (mizu) agua + 野 campo. En 亜美, 亜 significa «segundo/Asia» y 美 «belleza». Se suele comentar que Ami suena a «amie» (amiga en francés).","Mercurio se llama 水星 (suisei, «estrella de agua»): por eso es la Sailor del agua y del hielo, y su nombre lo lleva en el apellido."],
+["Hino Rei","ひの レイ","Sailor Moon","sm","火野レイ","«Campo de fuego»: 火 (hi) fuego + 野 campo. Rei (レイ) se suele relacionar con 霊 (rei, «espíritu»).","Marte es 火星 (kasei, «estrella de fuego»). Además es sacerdotisa (miko) de un templo, de ahí el lazo con lo espiritual y el fuego."],
+["Kino Makoto","きの まこと","Sailor Moon","sm","木野まこと","«Campo de árboles»: 木 (ki) árbol + 野 campo. まこと (誠) significa «sinceridad, lealtad».","Júpiter es 木星 (mokusei, «estrella de madera»): plantas y trueno. Su nombre resalta su corazón sincero y protector."],
+["Aino Minako","あいの みなこ","Sailor Moon","sm","愛野美奈子","«Campo del amor»: 愛 (ai) amor + 野 campo. 美奈子 lleva 美 (bi), «belleza».","Venus es la diosa del amor y la belleza: su nombre y su poder giran alrededor del amor."],
+["Tsukino Chibiusa","つきの ちびうさ","Sailor Moon","sm","月野ちびうさ","«Conejita»: ちび (chibi) «pequeña» + うさ, de うさぎ (conejo).","Es la hija futura de Usagi: su nombre es un diminutivo del de su madre y comparte apellido con ella."],
+["Tenoh Haruka","てんのう はるか","Sailor Moon","sm","天王はるか","天王 (ten'ō) significa «rey del cielo». はるか (遥か) significa «lejano, distante».","Urano es 天王星 (ten'ōsei, «estrella del rey del cielo»). «Lejano» recuerda la distancia del planeta y su aire independiente."],
+["Kaioh Michiru","かいおう みちる","Sailor Moon","sm","海王みちる","海王 (kaiō) significa «rey del mar». みちる (満ちる) significa «llenarse, colmarse», como la marea o la luna llena.","Neptuno es 海王星 (kaiōsei): su poder es el mar, y su nombre evoca la marea que sube."],
+["Meioh Setsuna","めいおう せつな","Sailor Moon","sm","冥王せつな","冥王 (meiō) significa «rey del inframundo». せつな (刹那) significa «instante, momento fugaz».","Plutón es 冥王星 (meiōsei). Guarda la Puerta del Tiempo: un «instante» es la unidad mínima del tiempo que ella vigila."],
+["Tomoe Hotaru","ともえ ほたる","Sailor Moon","sm","土萌ほたる","ほたる (蛍) significa «luciérnaga». En 土萌, 土 es «tierra» y 萌 «brotar».","Una luz pequeña y frágil en la oscuridad, como su salud delicada. Saturno es 土星 (dosei, «estrella de tierra») y 萌 evoca renacer, ligado a su renacimiento."],
+["Anya Forger","アーニャ・フォージャー","Spy×Family","sf","","Anya es un diminutivo ruso de Anna («gracia, favor»). Forger significa «falsificador».","La familia Forger es una falsificación: ninguno es pariente real de los otros. Anya además es el «Sujeto de prueba 007»."],
+["Loid Forger","ロイド・フォージャー","Spy×Family","sf","","Forger significa «falsificador». Loid es su identidad de cobertura; su nombre en clave es «Twilight» (黄昏, tasogare, «crepúsculo»).","El crepúsculo es el momento entre el día y la noche: un espía que vive entre dos mundos, y un padre falso que se vuelve real."],
+["Yor Forger","ヨル・フォージャー","Spy×Family","sf","","Su apellido de soltera es Briar («zarza, espino») y su nombre en clave es «Thorn Princess» (いばら姫, «Princesa Espina»). ヨル suena igual que 夜 (yoru, «noche»).","Las espinas y la noche: una asesina que trabaja de noche, escondida tras una vida normal de empleada."],
+["Bond Forger","ボンド・フォージャー","Spy×Family","sf","","Bond significa «vínculo, lazo».","El perro que ve el futuro se suma a la familia: su nombre subraya el lazo que une a los Forger."],
+["Franky Franklin","フランキー・フランクリン","Spy×Family","sf","","Franky Franklin es un nombre occidental común.","No tiene un simbolismo oficial destacado; es el informante de Loid."],
+["Yuri Briar","ユーリ・ブライア","Spy×Family","sf","","Briar significa «zarza, espino».","Comparte el motivo de las espinas con su hermana Yor, y es agente de la policía secreta."],
+["Damian Desmond","ダミアン・デスモンド","Spy×Family","sf","","Nombre y apellido occidentales, sin significado oficial destacado.","Es hijo del político Donovan Desmond y compañero de Anya en la academia Eden."],
+["Becky Blackbell","ベッキー・ブラックベル","Spy×Family","sf","","Blackbell se lee como «campana negra» (black + bell).","Es la mejor amiga de Anya en la academia Eden y pertenece a una familia adinerada."],
+["Fiona Frost","フィオナ・フロスト","Spy×Family","sf","","Frost significa «escarcha, hielo». Su nombre en clave es «Nightfall» («anochecer»).","Twilight (crepúsculo) y Nightfall (anochecer) son dos momentos seguidos del día, como colegas y rivales. Frost refleja su frialdad."],
+["Sylvia Sherwood","シルヴィア・シャーウッド","Spy×Family","sf","","Sherwood evoca el bosque de Sherwood (el de Robin Hood).","Es la «Handler», la jefa de Loid en la organización WISE; sin significado oficial destacado."],
+["Nakamura Okuto","なかむら おくと","Nakamura-kun!!","nk","中村男久斗","中村: 中 «centro» + 村 «aldea», un apellido comunísimo. 男久斗: 男 «hombre» + 久 «duradero» + 斗 «medida».","Su nombre suena parecido a 奥手 (okute, «tímido, reservado»): introvertido, torpe y fanático de los pulpos."],
+["Hirose Aiki","ひろせ あいき","Nakamura-kun!!","nk","広瀬愛貴","広瀬: 広 «amplio» + 瀬 «rápidos, corriente». 愛貴: 愛 «amor» + 貴 «valioso, precioso».","«Amor valioso»: justo lo que Nakamura siente por él desde el primer día. Hirose es el chico popular y sociable de la clase."],
+["Otogiri Sou","おとぎり そう","Nakamura-kun!!","nk","乙切想","乙切 (otogiri) suena igual que オトギリソウ, la hierba de San Juan. 想 (sō) significa «pensar, sentir».","No hay un simbolismo oficial confirmado; la coincidencia con la planta puede ser un guiño."],
+["Kawamura Hifumi","かわむら ひふみ","Nakamura-kun!!","nk","川村ひふみ","川村: 川 «río» + 村 «aldea». ひふみ es la forma tradicional de contar «uno, dos, tres» (hi-fu-mi).","Su nombre suena a cuenta tradicional; sin simbolismo oficial destacado."],
+["Matsumura Kou","まつむら こう","Nakamura-kun!!","nk","松村高青","松村: 松 «pino» + 村 «aldea». 高青: 高 «alto, elevado» + 青 «azul, juventud».","Compañero de secundaria de Hirose, guapo y bueno en estudios y deportes: «alto» y «juventud» encajan con su imagen."],
+["Todoroki Nobu","とどろき のぶ","Nakamura-kun!!","nk","轟矗","轟 (todoroki) significa «retumbar, estruendo de trueno». 矗 significa «erguirse, alzarse».","Su nombre suena a trueno, pero es tranquilo y amable con todos: el contraste es parte de su encanto."]
+];
+const NM=()=>mode.series==='all'?SAILORS:SAILORS.filter(x=>x[3]===mode.series);
+const CT=[["Argentina","アルゼンチン","Aruzenchin","🇦🇷"],["Japón","にほん","Nihon","🇯🇵"],["Estados Unidos","アメリカ","Amerika","🇺🇸"],["España","スペイン","Supein","🇪🇸"],["Brasil","ブラジル","Burajiru","🇧🇷"],["México","メキシコ","Mekishiko","🇲🇽"],["Chile","チリ","Chiri","🇨🇱"],["Italia","イタリア","Itaria","🇮🇹"],["Francia","フランス","Furansu","🇫🇷"],["Alemania","ドイツ","Doitsu","🇩🇪"],["Reino Unido","イギリス","Igirisu","🇬🇧"],["Canadá","カナダ","Kanada","🇨🇦"],["China","ちゅうごく","Chūgoku","🇨🇳"],["Corea","かんこく","Kankoku","🇰🇷"],["India","インド","Indo","🇮🇳"],["Perú","ペルー","Perū","🇵🇪"],["Colombia","コロンビア","Koronbia","🇨🇴"],["Uruguay","ウルグアイ","Urugai","🇺🇾"],["Australia","オーストラリア","Ōsutoraria","🇦🇺"]];
+const cn=c=>c[3]+' '+c[0];
+const PT=["は","を","に","の","か","も","で","から"];
+const PN={"は":"wa — marca el tema («en cuanto a…»)","を":"o — marca el objeto directo","に":"ni — destino, lugar de existencia u hora","で":"de — lugar donde se hace la acción","の":"no — posesión («de»)","か":"ka — convierte la frase en pregunta","も":"mo — «también»","から":"kara — «desde / de» (origen)"};
+const FILL=[
+["わたし＿ アルゼンチンじんです。","は","Yo soy argentino/a."],
+["おなまえ＿ なんですか。","は","¿Cómo te llamás?"],
+["おげんきです＿。","か","¿Estás bien?"],
+["これ＿ ほんです。","は","Esto es un libro."],
+["これは わたし＿ ともだちです。","の","Este es mi amigo/a."],
+["みず＿ のみます。","を","Tomo agua."],
+["どこ＿ きましたか。","から","¿De dónde viniste?"],
+["にほん＿ すんでいます。","に","Vivo en Japón."],
+["としょかん＿ べんきょうします。","で","Estudio en la biblioteca."],
+["ともだち＿ あいます。","に","Me encuentro con un amigo."],
+["パン＿ たべます。","を","Como pan."],
+["あなた＿ がくせいですか。","も","¿Vos también sos estudiante?"],
+["うさぎさん＿ せんせいですか。","は","¿Usagi es profesora?"]];
+const PH=[["はじめまして","Hajimemashite","Mucho gusto (al conocerse)"],["よろしくおねがいします","Yoroshiku onegaishimasu","Un gusto / encantado de conocerte"],["おなまえは なんですか","O-namae wa nan desu ka","¿Cómo te llamás?"],["おくには どちらですか","O-kuni wa dochira desu ka","¿De qué país sos?"],["アルゼンチンじんです","Aruzenchin-jin desu","Soy argentino/a"],["おげんきですか","O-genki desu ka","¿Cómo estás?"],["はい、げんきです","Hai, genki desu","Sí, estoy bien"],["わたしは がくせいです","Watashi wa gakusei desu","Soy estudiante"]];
+const ORD=[
+["Yo tomo café todos los días",[["わたし","Sujeto"],["は","Partícula"],["まいにち","Adverbio"],["コーヒー","Objeto"],["を","Partícula"],["のみます","Verbo"]]],
+["Usagi va a la escuela",[["うさぎ","Sujeto"],["は","Partícula"],["がっこう","Lugar"],["に","Partícula"],["いきます","Verbo"]]],
+["Ami estudia mucho",[["あみ","Sujeto"],["は","Partícula"],["よく","Adverbio"],["べんきょうします","Verbo"]]],
+["Yo como pan",[["わたし","Sujeto"],["は","Partícula"],["パン","Objeto"],["を","Partícula"],["たべます","Verbo"]]],
+["Makoto cocina bien",[["まこと","Sujeto"],["は","Partícula"],["じょうずに","Adverbio"],["りょうりします","Verbo"]]],
+["Yo hablo un poco de japonés",[["わたし","Sujeto"],["は","Partícula"],["すこし","Adverbio"],["にほんご","Objeto"],["を","Partícula"],["はなします","Verbo"]]]];
+
+const FR=["Watashi ＿ Aruzenchin-jin desu.","O-namae ＿ nan desu ka.","O-genki desu ＿.","Kore ＿ hon desu.","Kore wa watashi ＿ tomodachi desu.","Mizu ＿ nomimasu.","Doko ＿ kimashita ka.","Nihon ＿ sunde imasu.","Toshokan ＿ benkyō shimasu.","Tomodachi ＿ aimasu.","Pan ＿ tabemasu.","Anata ＿ gakusei desu ka.","Usagi-san ＿ sensei desu ka."];
+const ORR=[["watashi","wa","mainichi","kōhī","o","nomimasu"],["Usagi","wa","gakkō","ni","ikimasu"],["Ami","wa","yoku","benkyō shimasu"],["watashi","wa","pan","o","tabemasu"],["Makoto","wa","jōzu ni","ryōri shimasu"],["watashi","wa","sukoshi","nihongo","o","hanashimasu"]];
+FILL.push(["わたし＿ なまえは うさぎです。","の","Mi nombre es Usagi."],["これは あなた＿ ほんですか。","の","¿Este es tu libro?"],["わたし＿ ともだちは がくせいです。","の","Mi amigo es estudiante."],["あなた＿ アルゼンチンじんですか。","は","¿Sos argentino/a?"],["あみさん＿ がくせいです。","は","Ami es estudiante."],["わたしの ともだち＿ せんせいです。","は","Mi amigo es profesor."]);
+FR.push("Watashi ＿ namae wa Usagi desu.","Kore wa anata ＿ hon desu ka.","Watashi ＿ tomodachi wa gakusei desu.","Anata ＿ Aruzenchin-jin desu ka.","Ami-san ＿ gakusei desu.","Watashi no tomodachi ＿ sensei desu.");
+ORD.push(["Usagi es linda",[["うさぎ","Sujeto"],["は","Partícula"],["かわいいです","Predicado"]]],
+["Este es mi libro",[["これ","Sujeto"],["は","Partícula"],["わたし","Posesivo"],["の","Partícula"],["ほん","Sustantivo"],["です","Cópula"]]],
+["Mi amigo es estudiante",[["わたし","Posesivo"],["の","Partícula"],["ともだち","Sujeto"],["は","Partícula"],["がくせいです","Predicado"]]],
+["Estoy muy bien",[["わたし","Sujeto"],["は","Partícula"],["とても","Adverbio"],["げんきです","Predicado"]]]);
+ORR.push(["Usagi","wa","kawaii desu"],["kore","wa","watashi","no","hon","desu"],["watashi","no","tomodachi","wa","gakusei desu"],["watashi","wa","totemo","genki desu"]);
+const SIMP=[2,4,6,7,8,9];
+const GEN={
+sailors(){const s=pk(NM());
+  return Math.random()<.5
+   ? mk(s[1],oth(NM(),s,3).map(x=>x[1]),{html:`<div class="sm">¿Cómo se escribe?</div><div class="rom big">${s[0]}</div>`,font:'jp',key:s[0],info:s,note:`${s[0]} (${s[2]}) = ${s[1]}`})
+   : mk(s[0],oth(NM(),s,3).map(x=>x[0]),{html:`<div class="sm">¿Quién es?</div>`+KJ(s[1],3.2),font:'mono',key:s[1],info:s,note:`${s[1]} = ${s[0]} (${s[2]})`});},
+paises(){const c=pk(CT);
+  return mk(cn(c),oth(CT,c,3).map(cn),{html:KJ(c[1],2.8)+`<div class="rom">${c[2]}</div>`,font:'sans',key:c[1],note:`${c[1]} (${c[2]}) = ${c[0]}`});},
+part(){const ix=FILL.map((_,n)=>n).filter(n=>mode.allp||'はの'.includes(FILL[n][1])),i=pk(ix),f=FILL[i];
+  return mk(f[1],(mode.allp?oth(PT,f[1],3):oth(['は','の'],f[1],1)),{html:KJ(f[0].replace('＿','<span class="blank">＿</span>'),2)+(mode.romaji?`<div class="rom" style="font-size:.95rem">${FR[i].replace('＿','<span class="blank">＿</span>')}</div>`:'')+`<div class="sm">${f[2]}</div>`,font:'jp',key:f[1],note:`${f[1]} ${PN[f[1]]}`});},
+pres(){const r=Math.random(),c=pk(CT),s=pk(NM());
+  if(r<.35){const p=pk(PH);return mk(p[2],oth(PH,p,3).map(x=>x[2]),{html:KJ(p[0],2)+(mode.romaji?`<div class="rom">${p[1]}</div>`:''),font:'sans',key:p[0],note:`${p[0]} = ${p[2]}`});}
+  if(r<.7){const A=mode.allp,f=x=>A?`わたしは ${x[1]} から きました`:`わたしは ${x[1]}じん です`,w=oth(CT,c,3),r=x=>A?`Watashi wa ${x[2]} kara kimashita`:`Watashi wa ${x[2]}-jin desu`;return mk(f(c),w.map(f),{rom:Object.fromEntries([c,...w].map(x=>[f(x),r(x)])),html:`<div class="sm">¿Cómo se dice ${A?'«Vengo de ':'«Soy de '}${c[0]}»?</div>`,font:'jp',key:c[1],note:`${f(c)} — ${r(c)}`});}
+  const f=x=>`わたしは ${x[1]} です`,w=oth(NM(),s,3),rn=x=>`Watashi wa ${x[0]} desu`;return mk(f(s),w.map(f),{rom:Object.fromEntries([s,...w].map(x=>[f(x),rn(x)])),html:`<div class="sm">¿Cómo te presentás? «Soy ${s[0]}»</div>`,font:'jp',key:s[1],note:`${f(s)} — Watashi wa ${s[0]} desu`});}
+};
+
+function showInfo(e){
+  const w=e[3]==='sf'?e[0]:e[0].split(' ').reverse().join(' ');
+  const i=$('info');
+  i.innerHTML=`<div class="info-h">${e[4]?`<span class="jp">${e[4]}</span> · `:''}${w}</div><div class="info-t">${e[2]}</div><p><b>Significado:</b> ${e[5]}</p><p><b>Simbolismo:</b> ${e[6]}</p><button class="start-btn" id="next-btn">Siguiente ▶</button>`;
+  i.classList.remove('hidden');
+  $('next-btn').onclick=()=>nextQuestion();
+}
+function settle(ok,key,delay,manual){
+  locked=true;
+  if(ok){score+=10+Math.min(streak,10);streak++;bestStreak=Math.max(bestStreak,streak);correctCount++;
+    const h=$('hanko');h.textContent='良';h.className='hanko stamp';}
+  else{streak=0;lives--;missCounts[key]=(missCounts[key]||0)+1;renderLives();}
+  $('score-display').textContent='puntos: '+score;
+  $('streak-display').textContent='racha: '+streak;
+  if(!manual) setTimeout(()=>lives<=0?endGame():nextQuestion(),delay);
+}
+
+function nextQuiz(){
+  locked=false;totalCount++;
+  $('q-count').textContent='pregunta '+totalCount;
+  $('hanko').className='hanko';
+  const q=mode.game==='orden'?ordQ():GEN[mode.game]();
+  const pe=$('prompt-el');pe.className='prompt-text';pe.innerHTML=q.html;
+  const A=$('answers');A.innerHTML='';
+  if(q.build) return buildUI(q,A);
+  q.opts.forEach(o=>{
+    const b=document.createElement('button');b.className='answer-btn';b.dataset.v=o;
+    const rr=mode.romaji&&q.rom&&q.rom[o];
+    if(rr)b.innerHTML=o+'<small class="ro">'+rr+'</small>';else b.textContent=o;
+    b.style.fontFamily=q.font==='jp'?"'Yuji Syuku',serif":q.font==='mono'?"'Space Mono',monospace":'inherit';
+    if(o.length>8)b.style.fontSize='.9rem';
+    b.onclick=()=>{
+      if(locked)return;
+      A.querySelectorAll('button').forEach(x=>{x.disabled=true;if(x.dataset.v===q.ans)x.classList.add('correct');});
+      const ok=o===q.ans;if(!ok)b.classList.add('wrong');
+      if(ok&&q.info){$('note').textContent='';settle(true,q.key,0,true);showInfo(q.info);}
+      else{$('note').textContent=q.note;settle(ok,q.key,2200);}
+    };
+    A.appendChild(b);
+  });
+}
+
+function ordQ(){const ix=ORD.map((_,n)=>n).filter(n=>mode.allp||SIMP.includes(n)),i=pk(ix),[es,t]=ORD[i];
+  return{build:true,t,r:ORR[i],key:es,html:`<div class="sm">Armá la frase tocando las piezas en orden:</div><div class="sm"><b>${es}</b></div><div id="line" class="line"></div>`};}
+
+function buildUI(q,A){
+  let pos=0;
+  shuffle(q.t.map((x,i)=>({x,i}))).forEach(o=>{
+    const b=document.createElement('button');b.className='answer-btn';
+    b.innerHTML=o.x[0]+(mode.romaji?'<small class="ro">'+q.r[o.i]+'</small>':'');
+    b.style.fontFamily="'Yuji Syuku',serif";
+    b.onclick=()=>{
+      if(locked)return;
+      if(o.i===pos){
+        pos++;b.style.visibility='hidden';
+        const s=document.createElement('span');s.className='tok';
+        s.innerHTML=o.x[0]+(mode.romaji?'<small class="ro">'+q.r[o.i]+'</small>':'')+'<small>'+o.x[1]+'</small>';$('line').appendChild(s);
+        if(pos===q.t.length){$('note').textContent='は marca el tema, の une dos sustantivos («de») y el verbo o predicado va siempre al final.';settle(true,q.key,2600);}
+      }else{
+        b.classList.add('wrong');setTimeout(()=>b.classList.remove('wrong'),500);
+        streak=0;lives--;missCounts[q.key]=(missCounts[q.key]||0)+1;renderLives();
+        $('streak-display').textContent='racha: 0';
+        if(lives<=0){locked=true;setTimeout(endGame,900);}
+      }
+    };
+    A.appendChild(b);
+  });
+}
+</script>
+</body>
+</html>
